@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example</groupId>
-	<artifactId>server-sent-events</artifactId>
+	<artifactId>SSE-spring</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>server-sent-events</name>
 	<description>Demo project for Spring Boot</description>
