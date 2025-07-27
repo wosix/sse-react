@@ -1,0 +1,28 @@
+{
+    "name": "sse-react",
+    "version": "1.0.0",
+    "scripts": {
+        "build-app": "webpack serve --config src/dev-script/webpack.js"
+    },
+    "keywords": [],
+    "author": "wojciech woskowiak",
+    "license": "ISC",
+    "dependencies": {
+        "@emotion/react": "^11.14.0",
+        "@emotion/styled": "^11.14.1",
+        "@mui/material": "^7.2.0",
+        "axios": "^1.7.9",
+        "dotenv-webpack": "8.1.0",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
+        "react-scripts": "5.0.1",
+        "webpack-cli": "^6.0.1",
+        "webpack-dev-server": "5.2.0"
+    },
+    "babel": {
+        "presets": [
+            "@babel/preset-env",
+            "@babel/preset-react"
+        ]
+    }
+}
