@@ -1,13 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import Button from '@mui/material/Button';
 import { Box } from "@mui/system";
-import { useSnackbar } from 'notistack';
+import { defaultSnackbar, errorSnackbar, infoSnackbar, successSnackbar, warningSnackbar } from "./AlertBars";
 
 const SSEEvents = () => {
     const [isConnected, setIsConnected] = useState();
     const eventSourceRef = useRef(null);
-
-    const { enqueueSnackbar } = useSnackbar();
 
     const connectSSE = () => {
         if (eventSourceRef.current) return;
@@ -17,16 +15,18 @@ const SSEEvents = () => {
 
         eventSource.onopen = () => {
             console.log('Połączenie SSE nawiązane!');
+            successSnackbar('Połączenie SSE nawiązane!')
             setIsConnected(true);
         };
 
         eventSource.onmessage = (event) => {
             console.log('Received event:', event.data);
-            enqueueSnackbar(event.data, 'success');
+            infoSnackbar(event.data);
         };
 
         eventSource.onerror = (error) => {
             console.error('EventSource failed:', error);
+            errorSnackbar('EventSource failed')
             disconnectSSE();
         };
     }
@@ -36,6 +36,7 @@ const SSEEvents = () => {
         eventSourceRef.current = null;
         setIsConnected(false);
         console.log('Połączenie SSE zamknięte!');
+        warningSnackbar('Połączenie SSE zamknięte!')
     }
 
     useEffect(() => {
@@ -44,10 +45,9 @@ const SSEEvents = () => {
 
 
     return <>
-
-        <Box sx={{ width: 'min-content', margin: 'auto', paddingTop: '380px' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', paddingTop: '380px', gap: '10px' }}>
             {isConnected ?
-                <Button color="warning" variant="contained"
+                <Button color="warning" variant="contained" size="small"
                     onClick={() => disconnectSSE()}
                 >
                     rozłącz
@@ -60,19 +60,21 @@ const SSEEvents = () => {
                 </Button>
             }
             <Button color="inherit" variant="contained"
-                onClick={() => enqueueSnackbar('siema')}
+                onClick={() => defaultSnackbar('default message')}
             >
-                połącz
+                default
+            </Button>
+            <Button color="warning" variant="contained"
+                onClick={() => warningSnackbar('warrning message')}
+            >
+                warning
+            </Button>
+            <Button color="error" variant="contained"
+                onClick={() => errorSnackbar('error message')}
+            >
+                error
             </Button>
         </Box>
-
-        {/* {messages.map((message, index) => {
-            <AlertBar
-                key={index}
-                message={message}
-            />
-        })} */}
-
     </>
 }
 

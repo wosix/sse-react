@@ -8,6 +8,11 @@ function SlideTransition(props) {
     return <Slide {...props} direction="left" />;
 }
 
+const notistackAnchor = {
+    vertical: 'bottom',
+    horizontal: 'right'
+}
+
 const App = () => {
     return <Container sx={{
         height: '100vh'
@@ -15,13 +20,9 @@ const App = () => {
         <SnackbarProvider
             TransitionComponent={SlideTransition}
             maxSnack={7}
-            anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'right',
-            }}
-            autoHideDuration={5000}
+            anchorOrigin={notistackAnchor}
         >
-            <SSEEvents/>
+            <SSEEvents />
         </SnackbarProvider>
     </Container>
 }
