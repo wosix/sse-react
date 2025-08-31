@@ -15,6 +15,7 @@ public class Config {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/events")
                         .allowedOrigins("http://localhost:9000")
+                        .allowedMethods("GET")
                         .allowCredentials(true)
                         .allowedHeaders("*");
                 registry.addMapping("/action")
