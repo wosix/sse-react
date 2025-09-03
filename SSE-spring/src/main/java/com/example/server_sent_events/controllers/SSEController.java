@@ -28,7 +28,8 @@ public class SSEController {
 
         HttpSession session = request.getSession();
 
-        return notificationService.registerSession(session);
+        return notificationService.register(session);
+//        return notificationService.registerSession(session);
     }
 
 

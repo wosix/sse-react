@@ -1,20 +1,25 @@
 package com.example.server_sent_events.service;
 
+import com.example.server_sent_events.domain.Notification;
+import com.example.server_sent_events.domain.NotificationManager;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
-
 import static com.example.server_sent_events.domain.Constants.SSE_EMITTER_ATTRIBUTE;
 
 @Service
 public class NotificationService {
 
-    public SseEmitter registerSession(HttpSession session) {
+    private final NotificationManager notificationManager;
 
+    public NotificationService(NotificationManager notificationManager) {
+        this.notificationManager = notificationManager;
+    }
+
+    public SseEmitter register(HttpSession session) {
         String sessionId = session.getId();
 
         SseEmitter existingEmitter = (SseEmitter) session.getAttribute(SSE_EMITTER_ATTRIBUTE);
@@ -44,8 +49,7 @@ public class NotificationService {
         return emitter;
     }
 
-    public ResponseEntity<String> sendNotification(HttpSession session, String type, String message) {
-
+    public ResponseEntity<String> queueNotification(HttpSession session, Notification notification) {
         String sessionId = session.getId();
         SseEmitter emitter = (SseEmitter) session.getAttribute(SSE_EMITTER_ATTRIBUTE);
 
@@ -53,25 +57,9 @@ public class NotificationService {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not connected to SSE");
         }
 
-        try {
-            emitter.send(newMessage(type, message));
-            System.out.println("SSE message send to session: " + sessionId);
+        notificationManager.addNotification(sessionId, notification);
 
-            return ResponseEntity.ok("Notification sent");
-        } catch (IOException e) {
-            session.removeAttribute(SSE_EMITTER_ATTRIBUTE);
-            System.out.println("SSE error on sending message to session: " + sessionId);
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error sending notification: " + e.getMessage());
-        }
-    }
-
-    private String newMessage(String type, String message) {
-        return "{" +
-                "\"type\":\"" + type + "\"," +
-                "\"message\":\"" + message + "\"" +
-                "}";
+        return ResponseEntity.ok("Notification registered");
     }
 
 }

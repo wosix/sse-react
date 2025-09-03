@@ -1,5 +1,6 @@
 package com.example.server_sent_events.controllers;
 
+import com.example.server_sent_events.domain.Notification;
 import com.example.server_sent_events.service.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -27,8 +28,6 @@ public class ActionController {
         System.out.println("/action SESSION ID: " + request.getSession().getId());
         System.out.println("/action cookies JSESSIONID: " + getCookiesAsString(request.getCookies()));
 
-//        HttpSession session = request.getSession(false);
-
         HttpSession session = request.getSession();
 
         System.out.println("Session isNew: " + session.isNew());
@@ -37,7 +36,9 @@ public class ActionController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("No active session");
         }
 
-        return notificationService.sendNotification(session, NOTIFICATION_TYPE_INFO, "action message");
+        Notification notification = new Notification(NOTIFICATION_TYPE_INFO, "action mesage!");
+        return notificationService.queueNotification(session, notification);
+//        return notificationService.sendNotification(session, NOTIFICATION_TYPE_INFO, "action message");
     }
 
 }
