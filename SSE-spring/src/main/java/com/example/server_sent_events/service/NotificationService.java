@@ -3,23 +3,22 @@ package com.example.server_sent_events.service;
 import com.example.server_sent_events.domain.Notification;
 import com.example.server_sent_events.domain.NotificationManager;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import static com.example.server_sent_events.domain.Constants.NOTIFICATION_TYPE_INFO;
 import static com.example.server_sent_events.domain.Constants.SSE_EMITTER_ATTRIBUTE;
 
 @Service
+@RequiredArgsConstructor
 public class NotificationService {
 
     private final NotificationManager notificationManager;
 
-    public NotificationService(NotificationManager notificationManager) {
-        this.notificationManager = notificationManager;
-    }
-
-    public SseEmitter register(HttpSession session) {
+    public SseEmitter registerSession(HttpSession session) {
         String sessionId = session.getId();
 
         SseEmitter existingEmitter = (SseEmitter) session.getAttribute(SSE_EMITTER_ATTRIBUTE);
@@ -49,7 +48,7 @@ public class NotificationService {
         return emitter;
     }
 
-    public ResponseEntity<String> queueNotification(HttpSession session, Notification notification) {
+    public ResponseEntity<String> queueNotification(HttpSession session) {
         String sessionId = session.getId();
         SseEmitter emitter = (SseEmitter) session.getAttribute(SSE_EMITTER_ATTRIBUTE);
 
@@ -57,7 +56,8 @@ public class NotificationService {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not connected to SSE");
         }
 
-        notificationManager.addNotification(sessionId, notification);
+        Notification notification = new Notification(sessionId, NOTIFICATION_TYPE_INFO, "action mesage!");
+        notificationManager.addNotification(notification);
 
         return ResponseEntity.ok("Notification registered");
     }

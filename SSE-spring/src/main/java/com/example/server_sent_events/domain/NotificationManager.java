@@ -3,122 +3,82 @@ package com.example.server_sent_events.domain;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import static com.example.server_sent_events.domain.Constants.SSE_EMITTER_ATTRIBUTE;
 
 @Component
-public class NotificationManager {
+@RequiredArgsConstructor
+public class NotificationManager implements Runnable {
 
     private final HttpSessionRegistry sessionRegistry;
-    private final ConcurrentHashMap<String, List<Notification>> pendingNotifications;
-    private final ScheduledExecutorService scheduler;
-
-    public NotificationManager(HttpSessionRegistry sessionRegistry) {
-        this.sessionRegistry = sessionRegistry;
-        pendingNotifications = new ConcurrentHashMap<>();
-        this.scheduler = Executors.newSingleThreadScheduledExecutor();
-
-    }
-
-    public void addNotification(String sessionId, Notification notification) {
-        pendingNotifications.compute(sessionId, (key, notifications) -> {
-            if (notifications == null) {
-                notifications = new CopyOnWriteArrayList<>();
-            }
-            notifications.add(notification);
-            System.out.println("Registered message: " + sessionId + " - " + notification.getMessageJson());
-            return notifications;
-        });
-    }
+    private final BlockingQueue<Notification> pendingNotifications = new LinkedBlockingQueue<>(100);
+    private final int threadCount = 3;
+    private final ExecutorService consumerExecutor = Executors.newFixedThreadPool(threadCount);
 
     @PostConstruct
-    private void startNotificationProcessor() {
-        scheduler.scheduleAtFixedRate(() -> {
-            processPendingNotifications();
-            showSessionsLastAccessTimes();
-        }, 10, 5, TimeUnit.SECONDS);
-    }
-
-    private void showSessionsLastAccessTimes() {
-        HttpSessionRegistry.printAllLastAccessedTime();
-    }
-
-
-    private void processPendingNotifications() {
-        AtomicInteger count = new AtomicInteger();
-        pendingNotifications.forEach((sessionId, notifications) -> {
-            if (!notifications.isEmpty()) {
-                sendNotificationsForSession(sessionId);
-                count.getAndIncrement();
-            }
-            System.out.println("Sending " + getPendingCount(sessionId) + " messages to sessionId " + sessionId);
-        });
-        System.out.println("Sent mesages to " + count + " sessions");
-    }
-
-    private void sendNotificationsForSession(String sessionId) {
-        List<Notification> notifications = pendingNotifications.get(sessionId);
-
-        if (!HttpSessionRegistry.sessionExists(sessionId)) {
-            pendingNotifications.remove(sessionId);
-            System.out.println(sessionId + " does not exists in register");
-            return;
+    private void startConsumerThreads() {
+        for (int i = 0; i < threadCount; i++) {
+            consumerExecutor.execute(this);
         }
-
-        notifications.forEach(notification -> {
-            sendNotification(sessionId, notification);
-        });
-
-        pendingNotifications.remove(sessionId);
+        System.out.println("NotificationManager started with " + threadCount + " consumers/threads");
     }
 
-    private void sendNotification(String sessionId, Notification notification) {
-        HttpSession session = HttpSessionRegistry.find(sessionId);
+    @PreDestroy
+    public void cleanup() {
+        consumerExecutor.shutdown();
+        pendingNotifications.clear();
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            try {
+                showSessionsLastAccessTimes();
+                Notification notification = pendingNotifications.take();
+                if (!sessionRegistry.hasEmitter(notification.getJSessionId())) {
+                    continue;
+                }
+                sendNotification(notification);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.out.println(Thread.currentThread().getName() + " - thread interrupted");
+            } catch (Exception e) {
+                System.out.println(Thread.currentThread().getName() + " - " + e.getMessage());
+            }
+        }
+    }
+
+    public void addNotification(Notification notification) {
+        pendingNotifications.add(notification);
+        System.out.println("QUEUED - " + notification);
+    }
+
+    private void sendNotification(Notification notification) {
+        HttpSession session = sessionRegistry.find(notification.getJSessionId());
         if (session != null) {
             SseEmitter emitter = (SseEmitter) session.getAttribute(SSE_EMITTER_ATTRIBUTE);
             if (emitter != null) {
                 try {
                     emitter.send(notification.getMessageJson());
 
-                    System.out.println("SENT: " + sessionId + " - " + notification.getMessageJson());
+                    System.out.println("SENT - " + Thread.currentThread().getName() + " : " + notification);
                 } catch (Exception e) {
-                    System.err.println("Failed to send to session " + sessionId + ": " + e.getMessage());
+                    System.err.println("Failed to send to session " + notification.getJSessionId() + ": " + e.getMessage());
                 }
             }
         }
     }
 
-//    public void triggerSend(String sessionId) {
-//        sendNotificationsForSession(sessionId);
-//    }
-//
-//    public void triggerSendForAll() {
-//        pendingNotifications.keySet().forEach(this::sendNotificationsForSession);
-//    }
-//
-//    public boolean hasNotifications(String sessionId) {
-//        List<Notification> notifications = pendingNotifications.get(sessionId);
-//        return notifications != null && !notifications.isEmpty();
-//    }
-
-    public int getPendingCount(String sessionId) {
-        List<Notification> notifications = pendingNotifications.get(sessionId);
-        return notifications != null ? notifications.size() : 0;
+    private void showSessionsLastAccessTimes() {
+        sessionRegistry.printAllLastAccessedTime();
     }
 
-    @PreDestroy
-    public void cleanup() {
-        scheduler.shutdown();
-        pendingNotifications.clear();
-    }
 }

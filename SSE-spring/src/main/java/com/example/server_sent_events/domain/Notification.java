@@ -1,14 +1,15 @@
 package com.example.server_sent_events.domain;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
 public class Notification {
 
+    private String jSessionId;
     private String type;
     private String message;
-
-    public Notification(String type, String message) {
-        this.type = type;
-        this.message = message;
-    }
 
     public String getMessageJson() {
         return "{" +
@@ -17,4 +18,8 @@ public class Notification {
                 "}";
     }
 
+    @Override
+    public String toString() {
+        return "{Notification = " + jSessionId + " / " + getMessageJson();
+    }
 }

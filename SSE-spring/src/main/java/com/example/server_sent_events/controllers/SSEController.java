@@ -22,15 +22,10 @@ public class SSEController {
 
     @GetMapping("/events")
     public SseEmitter streamSSE(HttpServletRequest request) {
-        System.out.println("/events SESSION ID: " + request.getSession().getId());
-        System.out.println("/events cookies JSESSIONID: " + getCookiesAsString(request.getCookies()));
-
+        System.out.println("/events - " + getCookiesAsString(request.getCookies()));
 
         HttpSession session = request.getSession();
-
-        return notificationService.register(session);
-//        return notificationService.registerSession(session);
+        return notificationService.registerSession(session);
     }
-
 
 }

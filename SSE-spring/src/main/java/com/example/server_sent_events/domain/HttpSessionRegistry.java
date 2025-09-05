@@ -31,24 +31,25 @@ public class HttpSessionRegistry implements HttpSessionListener {
         return SESSIONS.get(sessionId);
     }
 
-    public static boolean sessionExists(String sessionId) {
+    public boolean hasEmitter(String sessionId) {
         return SESSIONS.containsKey(sessionId);
     }
 
-    public static int getCount() {
+    public int getCount() {
         return SESSIONS.size();
     }
 
-    public static void printAllLastAccessedTime() {
-        System.out.println("Active sessions: " + getCount());
+    public void printAllLastAccessedTime() {
+        System.out.println("\t----- Active sessions: " + getCount() + " -----");
         SESSIONS.forEach((s, session) -> {
             printLastAccessedTime(s);
         });
+        System.out.println("\t------------------------------");
     }
 
-    public static void printLastAccessedTime(String sessionId) {
+    public void printLastAccessedTime(String sessionId) {
         long currentTime = System.currentTimeMillis();
-        HttpSession session = find(sessionId);
+        HttpSession session = SESSIONS.get(sessionId);
         long lastAccess = session.getLastAccessedTime();
         long inactiveTime = (currentTime - lastAccess) / 1000;
         long maxInactive = session.getMaxInactiveInterval();
